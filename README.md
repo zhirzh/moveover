@@ -4,9 +4,13 @@ MoveOver is a [Canva](https://www.canva.com) style landing page.
 
 With extra goodness:
 
-* Single image loading
-* Dynamic blurring (because single image)
+* ~~Single image loading~~
+* ~~Dynamic blurring (because single image)~~
+ **client-side blurring is cpu intensive [webworkers maybe?]**
 * Works just fine in Firefox (more on it later)
+* Responsive, i.e., almost all sized screens
+
+---
 
 ### But Why?
 
