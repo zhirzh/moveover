@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        canvas {
+            /*width: 100vw;*/
+            /*height: 100vh;*/
+        }
+    </style>
+</head>
+<body>
+    <canvas></canvas>
+</body>
+<script type="text/javascript">
+    var blurIters = 3;
+    var kernelRadius = 5;
+    var darkenAlpha = 0.3;
+
+    var canvas;
+    var ctx;
+    var img;
+    var imgB;
+    var T = null;
+    var points = [];
+
+    function init() {
+        window.onmousemove = function(e) {
+            var point = {
+                x: e.clientX,
+                y: e.clientY,
+                t: performance.now(),
+            };
+
+            if (point.t - T < 20) {
+                return;
+            }
+
+            T = point.t;
+            points.unshift(point);
+        };
+
+        initResources();
+    }
+
+    function initResources() {
+        canvas = document.querySelector('canvas');
+        ctx = canvas.getContext('2d');
+
+        img = new Image;
+        img.src = '1.jpg'
+        img.onload = function () {
+            canvas.width = img.width;
+            canvas.height = img.height;
+
+            ctx.lineJoin = ctx.lineCap = 'round';
+            ctx.shadowBlur = 20;
+
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            data = darken(blur(data, blurIters), 1 - darkenAlpha);
+            ctx.putImageData(data, 0, 0);
+
+            imgB = new Image();
+            imgB.src = canvas.toDataURL();
+
+            requestAnimationFrame(render);
+        }
+    }
+
+    function resize() {
+    }
+
+
+    function renderPath() {
+        var now = performance.now();
+
+        for (var i = 0; i < points.length; i++) {
+            if (now - points[i].t > 1000) {
+                points.length = i;
+            }
+        }
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.8)';
+        ctx.globalCompositeOperation = 'source-over';
+        for (i = 1; i < points.length; i++) {
+            var d = Math.sqrt(
+                Math.pow(points[i].x - points[i - 1].x, 2)
+                + Math.pow(points[i].y - points[i - 1].y, 2));
+
+            var alpha = Math.max(1 - (now - points[i].t) / 1000, 0);
+
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(0,0,0,' + alpha + ')';
+            ctx.lineWidth = 30 + 70 * Math.max(1 - d / 100, 0);
+            ctx.moveTo(points[i - 1].x, points[i - 1].y);
+            ctx.lineTo(points[i].x, points[i].y);
+            ctx.stroke()
+        }
+
+        ctx.restore();
+    }
+
+    function renderImages() {
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        ctx.globalCompositeOperation = 'destination-over';
+        ctx.drawImage(imgB, 0, 0, canvas.width, canvas.height);
+    }
+
+    function render() {
+        window.requestAnimationFrame(render);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        renderPath();
+        renderImages();
+    }
+
+    init();
+
+
+
+
+
+
+
+
+    function blurH(data) {
+        var kernelLength = 2 * kernelRadius;
+        var newData = ctx.createImageData(data.width, data.height);
+
+        var y = -1;
+        for (var i = 0; i < data.data.length; i += 4) {
+            if ((i / 4) % data.width === 0) {
+                y++;
+            }
+
+            for (var j = 0; j < 3; j++) {
+                var idx = i + j;
+
+                var sum = 0;
+                for (var k = 0; k < kernelLength; k++) {
+                    var offset = 4 * (k - kernelRadius);
+                    if (
+                        idx + offset < 4 * y * data.width
+                        ||
+                        idx + offset >= 4 * (y + 1) * data.width
+                    ) {
+                        sum += (data.data[idx]) / kernelLength;
+                    } else {
+                        sum += (data.data[idx + offset]) / kernelLength;
+                    }
+                }
+
+                newData.data[idx] = sum;
+            }
+
+            newData.data[i+3] = data.data[i+3];
+        }
+
+        return newData;
+    }
+
+    function blurV(data) {
+        var kernelLength = 1 + (2 * kernelRadius);
+        var newData = ctx.createImageData(data.width, data.height);
+
+        var idx, offset, sum;
+        for (var i = 0; i < data.data.length; i += 4) {
+            for (var j = 0; j < 3; j++) {
+                var idx = i+j;
+
+                var sum = 0;
+                for (var k = 0; k < kernelLength; k++) {
+                    var offset = 4 * data.width * (k - kernelRadius);
+                    sum += (data.data[idx + offset] || data.data[idx]) / kernelLength;
+                }
+
+                newData.data[idx] = sum;
+            }
+
+            newData.data[i+3] = data.data[i+3];
+        }
+
+        return newData;
+    }
+
+    function blur(data, n) {
+        while (n--) {
+            data = blurV(blurH(data));
+        }
+
+        return data;
+    }
+
+    function darken(data, alpha) {
+        for (var i = 0; i < data.data.length; i += 4) {
+            for (var j = 0; j < 3; j++) {
+                data.data[i + j] *= alpha;
+            }
+        }
+
+        return data;
+    }
+</script>
+</html>
