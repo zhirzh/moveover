@@ -3,14 +3,14 @@
 <head>
     <title></title>
     <style type="text/css">
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        html,
+        body {
+            overflow: hidden;  /*hides *weird* scrollbars*/
         }
         canvas {
-            /*width: 100vw;*/
-            /*height: 100vh;*/
+            position: absolute;
+            left: 0;
+            top: 0;
         }
     </style>
 </head>
@@ -18,32 +18,40 @@
     <canvas></canvas>
 </body>
 <script type="text/javascript">
-    var blurIters = 3;
-    var kernelRadius = 5;
-    var darkenAlpha = 0.3;
-
     var canvas;
+    var canvasRect;
     var ctx;
+    var rafID;
+
     var img;
     var imgB;
-    var T = null;
+
+    var K;
+    var ctr = 0;
+    var lastPoint = 0;
     var points = [];
 
     function init() {
-        window.onmousemove = function(e) {
+        window.addEventListener('mousemove', function(e) {
             var point = {
-                x: e.clientX,
-                y: e.clientY,
+                x: (e.clientX - canvasRect.left) * K,
+                y: (e.clientY - canvasRect.top) * K,
                 t: performance.now(),
             };
 
-            if (point.t - T < 20) {
+            if (point.t - lastPoint < 20) {
                 return;
             }
 
-            T = point.t;
+            lastPoint = point.t;
             points.unshift(point);
-        };
+
+            if (rafID === 0) {
+                rafID = requestAnimationFrame(render);
+            }
+        });
+
+        window.addEventListener('resize', resize);
 
         initResources();
     }
@@ -52,30 +60,62 @@
         canvas = document.querySelector('canvas');
         ctx = canvas.getContext('2d');
 
-        img = new Image;
+        img = new Image();
         img.src = '1.jpg'
-        img.onload = function () {
-            canvas.width = img.width;
-            canvas.height = img.height;
 
-            ctx.lineJoin = ctx.lineCap = 'round';
-            ctx.shadowBlur = 20;
+        imgB = new Image();
+        imgB.src = '1.b.jpg'
 
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            data = darken(blur(data, blurIters), 1 - darkenAlpha);
-            ctx.putImageData(data, 0, 0);
+        img.onload = imgB.onload = onLoaded;
+    }
 
-            imgB = new Image();
-            imgB.src = canvas.toDataURL();
-
-            requestAnimationFrame(render);
+    function onLoaded() {
+        if (++ctr < 2) {
+            return;
         }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.lineJoin = ctx.lineCap = 'round';
+        ctx.shadowBlur = 20;
+
+        resize();
+
+        rafID = requestAnimationFrame(render);
     }
 
     function resize() {
-    }
+        var viewportAspect = window.innerWidth / window.innerHeight;
+        var imgAspect = img.width / img.height;
 
+        var size = {
+            W: window.innerWidth,
+            H: window.innerHeight,
+        };
+
+        var offset = {
+            X: 0,
+            Y: 0,
+        };
+
+        if (viewportAspect < imgAspect) {
+            size.W = size.H * imgAspect;
+            offset.X = (window.innerWidth - size.W) / 2;
+        } else {
+            size.H = size.W / imgAspect;
+            offset.Y = (window.innerHeight - size.H) / 2;
+        }
+
+        canvas.style.width = (1 + size.W) + 'px';
+        canvas.style.height = (1 + size.H) + 'px';
+
+        canvas.style.left = offset.X + 'px';
+        canvas.style.top = offset.Y + 'px';
+
+        canvasRect = canvas.getBoundingClientRect();
+
+        K = img.width / size.W;  // same as: K = img.height / H;
+    }
 
     function renderPath() {
         var now = performance.now();
@@ -116,98 +156,18 @@
     }
 
     function render() {
-        window.requestAnimationFrame(render);
+        rafID = requestAnimationFrame(render);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (points.length === 0) {
+            cancelAnimationFrame(rafID);
+            rafID = 0;
+        }
 
         renderPath();
         renderImages();
     }
 
     init();
-
-
-
-
-
-
-
-
-    function blurH(data) {
-        var kernelLength = 2 * kernelRadius;
-        var newData = ctx.createImageData(data.width, data.height);
-
-        var y = -1;
-        for (var i = 0; i < data.data.length; i += 4) {
-            if ((i / 4) % data.width === 0) {
-                y++;
-            }
-
-            for (var j = 0; j < 3; j++) {
-                var idx = i + j;
-
-                var sum = 0;
-                for (var k = 0; k < kernelLength; k++) {
-                    var offset = 4 * (k - kernelRadius);
-                    if (
-                        idx + offset < 4 * y * data.width
-                        ||
-                        idx + offset >= 4 * (y + 1) * data.width
-                    ) {
-                        sum += (data.data[idx]) / kernelLength;
-                    } else {
-                        sum += (data.data[idx + offset]) / kernelLength;
-                    }
-                }
-
-                newData.data[idx] = sum;
-            }
-
-            newData.data[i+3] = data.data[i+3];
-        }
-
-        return newData;
-    }
-
-    function blurV(data) {
-        var kernelLength = 1 + (2 * kernelRadius);
-        var newData = ctx.createImageData(data.width, data.height);
-
-        var idx, offset, sum;
-        for (var i = 0; i < data.data.length; i += 4) {
-            for (var j = 0; j < 3; j++) {
-                var idx = i+j;
-
-                var sum = 0;
-                for (var k = 0; k < kernelLength; k++) {
-                    var offset = 4 * data.width * (k - kernelRadius);
-                    sum += (data.data[idx + offset] || data.data[idx]) / kernelLength;
-                }
-
-                newData.data[idx] = sum;
-            }
-
-            newData.data[i+3] = data.data[i+3];
-        }
-
-        return newData;
-    }
-
-    function blur(data, n) {
-        while (n--) {
-            data = blurV(blurH(data));
-        }
-
-        return data;
-    }
-
-    function darken(data, alpha) {
-        for (var i = 0; i < data.data.length; i += 4) {
-            for (var j = 0; j < 3; j++) {
-                data.data[i + j] *= alpha;
-            }
-        }
-
-        return data;
-    }
 </script>
 </html>
