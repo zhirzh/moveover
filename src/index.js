@@ -12,9 +12,22 @@ const points = [];
 
 
 function createPath(e) {
+  let pos;
+  switch (e.type) {
+    case 'touchmove':
+      pos = e.changedTouches[0];
+      break;
+
+    case 'mousemove':
+      pos = e;
+      break;
+
+    default:
+  }
+
   points.unshift({
-    x: (e.clientX - canvas.rect.left) * zoom,
-    y: (e.clientY - canvas.rect.top) * zoom,
+    x: (pos.clientX - canvas.rect.left) * zoom,
+    y: (pos.clientY - canvas.rect.top) * zoom,
     t: performance.now(),
   });
 }
@@ -143,9 +156,13 @@ function restartAnimation() {
 
 function bindEventListeners() {
   window.addEventListener('resize', resize);
+  window.addEventListener('orientationchange', resize);
 
   window.addEventListener('mousemove', createPath);
   window.addEventListener('mousemove', restartAnimation);
+
+  window.addEventListener('touchmove', createPath);
+  window.addEventListener('touchmove', restartAnimation);
 }
 
 
