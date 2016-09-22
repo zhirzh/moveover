@@ -165,9 +165,5 @@ function init({ canvas: _canvas, imgSrc, imgBSrc, fps: _fps = 60 }) {
     .then(bindEventListeners);
 }
 
-init({
-  canvas: document.querySelector('canvas'),
-  imgSrc: '1.jpg',
-  imgBSrc: '1.b.jpg',
-  fps: 30,
-});
+// export default init;  // Problems with Babel v6 and Webpack UMD style
+module.exports = init;
