@@ -38,4 +38,4 @@ canvas context around paint operations, the problem can be circumvented.
 
 ### Demo
 
-The [demo](https://zhirzh.github.io/moveover) uses the technique mentioned above.
+The [demo](https://zhirzh.github.io/moveover/dist) uses the technique mentioned above.
