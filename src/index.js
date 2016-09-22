@@ -5,10 +5,72 @@ let rafID;
 let img;
 let imgB;
 
-let K;
-let ctr = 0;
-let lastPoint = 0;
+let zoom;
 const points = [];
+
+
+function createPath(e) {
+  points.unshift({
+    x: (e.clientX - canvas.rect.left) * zoom,
+    y: (e.clientY - canvas.rect.top) * zoom,
+    t: performance.now(),
+  });
+}
+
+
+function renderPath() {
+  const now = performance.now();
+
+  for (let i = 0; i < points.length; i += 1) {
+    if (now - points[i].t > 1000) {
+      points.length = i;
+    }
+  }
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.8)';
+  ctx.globalCompositeOperation = 'source-over';
+  for (let i = 1; i < points.length; i += 1) {
+    const d = Math.sqrt(
+      Math.pow(points[i].x - points[i - 1].x, 2)
+      + Math.pow(points[i].y - points[i - 1].y, 2));
+
+    const delta = now - points[i].t;
+    const alpha = Math.max(1 - (delta / 1000), 0);
+
+    ctx.beginPath();
+    ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
+    ctx.lineWidth = 30 + (70 * Math.max(1 - (d / 100), 0));
+    ctx.moveTo(points[i - 1].x, points[i - 1].y);
+    ctx.lineTo(points[i].x, points[i].y);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+
+function renderImages() {
+  ctx.globalCompositeOperation = 'source-in';
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  ctx.globalCompositeOperation = 'destination-over';
+  ctx.drawImage(imgB, 0, 0, canvas.width, canvas.height);
+}
+
+
+function render() {
+  rafID = requestAnimationFrame(render);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  renderPath();
+  renderImages();
+
+  if (points.length === 0) {
+    cancelAnimationFrame(rafID);
+    rafID = 0;
+  }
+}
 
 
 function resize() {
@@ -41,118 +103,51 @@ function resize() {
 
   canvas.rect = canvas.getBoundingClientRect();
 
-  K = img.width / size.W;  // same as: K = img.height / H;
-}
-
-
-function renderPath() {
-  const now = performance.now();
-
-  for (let i = 0; i < points.length; i += 1) {
-    if (now - points[i].t > 1000) {
-      points.length = i;
-    }
-  }
-
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.8)';
-  ctx.globalCompositeOperation = 'source-over';
-  for (let i = 1; i < points.length; i += 1) {
-    const d = Math.sqrt(
-      Math.pow(points[i].x - points[i - 1].x, 2)
-      + Math.pow(points[i].y - points[i - 1].y, 2));
-
-    const alpha = Math.max(1 - ((now - points[i].t) / 1000), 0);
-
-    ctx.beginPath();
-    ctx.strokeStyle = `rgba(0,0,0,${alpha})`;
-    ctx.lineWidth = 30 + (70 * Math.max(1 - (d / 100), 0));
-    ctx.moveTo(points[i - 1].x, points[i - 1].y);
-    ctx.lineTo(points[i].x, points[i].y);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
-
-function renderImages() {
-  ctx.globalCompositeOperation = 'source-in';
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  ctx.globalCompositeOperation = 'destination-over';
-  ctx.drawImage(imgB, 0, 0, canvas.width, canvas.height);
-}
-
-
-function render() {
-  rafID = requestAnimationFrame(render);
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  if (points.length === 0) {
-    cancelAnimationFrame(rafID);
-    rafID = 0;
-  }
-
-  renderPath();
-  renderImages();
+  zoom = img.width / size.W;  // same as: zoom = img.height / H;
 }
 
 
 function onLoaded() {
-  ctr += 1;
-  if (ctr < 2) {
-    return;
-  }
-
   canvas.width = img.width;
   canvas.height = img.height;
+
   ctx.lineJoin = ctx.lineCap = 'round';
   ctx.shadowBlur = 20;
-
-  resize();
-
-  rafID = requestAnimationFrame(render);
 }
 
 
-function initResources() {
-  canvas = document.querySelector('canvas');
-  ctx = canvas.getContext('2d');
-
-  img = new Image();
-  img.src = '1.jpg';
-
-  imgB = new Image();
-  imgB.src = '1.b.jpg';
-
-  img.onload = imgB.onload = onLoaded;
-}
-
-
-function init() {
-  window.addEventListener('mousemove', (e) => {
-    const point = {
-      x: (e.clientX - canvas.rect.left) * K,
-      y: (e.clientY - canvas.rect.top) * K,
-      t: performance.now(),
-    };
-
-    if (point.t - lastPoint < 20) {
-      return;
-    }
-
-    lastPoint = point.t;
-    points.unshift(point);
-
+function init({ canvas: _canvas, imgSrc, imgBSrc }) {
+  window.addEventListener('mousemove', createPath);
+  window.addEventListener('mousemove', () => {
     if (rafID === 0) {
       rafID = requestAnimationFrame(render);
     }
   });
-
   window.addEventListener('resize', resize);
 
-  initResources();
+  canvas = _canvas;
+  ctx = canvas.getContext('2d');
+
+  img = new Image();
+  img.src = imgSrc;
+  img.promise = new Promise((res) => {
+    img.onload = res;
+  });
+
+  imgB = new Image();
+  imgB.src = imgBSrc;
+  imgB.promise = new Promise((res) => {
+    imgB.onload = res;
+  });
+
+  Promise.all([img.promise, imgB.promise])
+    .then(onLoaded)
+    .then(resize)
+    .then(render);
 }
 
-init();
+init({
+  canvas: document.querySelector('canvas'),
+  imgSrc: '1.jpg',
+  imgBSrc: '1.b.jpg',
+});
