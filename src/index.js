@@ -116,6 +116,17 @@ function onLoaded() {
 }
 
 
+function loadImage(src) {
+  const image = new Image();
+  image.src = src;
+  image.promise = new Promise((res) => {
+    image.onload = res;
+  });
+
+  return image;
+}
+
+
 function init({ canvas: _canvas, imgSrc, imgBSrc }) {
   window.addEventListener('mousemove', createPath);
   window.addEventListener('mousemove', () => {
@@ -128,17 +139,8 @@ function init({ canvas: _canvas, imgSrc, imgBSrc }) {
   canvas = _canvas;
   ctx = canvas.getContext('2d');
 
-  img = new Image();
-  img.src = imgSrc;
-  img.promise = new Promise((res) => {
-    img.onload = res;
-  });
-
-  imgB = new Image();
-  imgB.src = imgBSrc;
-  imgB.promise = new Promise((res) => {
-    imgB.onload = res;
-  });
+  img = loadImage(imgSrc);
+  imgB = loadImage(imgBSrc);
 
   Promise.all([img.promise, imgB.promise])
     .then(onLoaded)
