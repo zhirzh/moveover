@@ -1,5 +1,7 @@
 let canvas;
 let ctx;
+let fps;
+let last;
 let rafID;
 
 let img;
@@ -59,8 +61,13 @@ function renderImages() {
 }
 
 
-function render() {
+function render(HRTimestamp) {
   rafID = requestAnimationFrame(render);
+  if (HRTimestamp - last < 1000 / fps) {
+    return;
+  }
+  last = HRTimestamp;
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   renderPath();
@@ -127,17 +134,26 @@ function loadImage(src) {
 }
 
 
-function init({ canvas: _canvas, imgSrc, imgBSrc }) {
-  window.addEventListener('mousemove', createPath);
-  window.addEventListener('mousemove', () => {
-    if (rafID === 0) {
-      rafID = requestAnimationFrame(render);
-    }
-  });
+function restartAnimation() {
+  if (rafID === 0) {
+    rafID = requestAnimationFrame(render);
+  }
+}
+
+
+function bindEventListeners() {
   window.addEventListener('resize', resize);
 
+  window.addEventListener('mousemove', createPath);
+  window.addEventListener('mousemove', restartAnimation);
+}
+
+
+function init({ canvas: _canvas, imgSrc, imgBSrc, fps: _fps = 60 }) {
   canvas = _canvas;
   ctx = canvas.getContext('2d');
+  fps = _fps;
+  last = 0;
 
   img = loadImage(imgSrc);
   imgB = loadImage(imgBSrc);
@@ -145,11 +161,13 @@ function init({ canvas: _canvas, imgSrc, imgBSrc }) {
   Promise.all([img.promise, imgB.promise])
     .then(onLoaded)
     .then(resize)
-    .then(render);
+    .then(render)
+    .then(bindEventListeners);
 }
 
 init({
   canvas: document.querySelector('canvas'),
   imgSrc: '1.jpg',
   imgBSrc: '1.b.jpg',
+  fps: 30,
 });
