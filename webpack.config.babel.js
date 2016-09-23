@@ -9,6 +9,8 @@ export default {
     path.resolve(SRC_DIR, 'index.js'),
   ],
 
+  devtool: 'source-map',
+
   output: {
     path: DIST_DIR,
     filename: 'move-over.js',
