@@ -10,7 +10,41 @@ With extra goodness:
 
 ---
 
-### But Why?
+## How to use
+
+#### Script tag
+```html
+<script type="text/javascript" src="move-over.js"></script>
+<script type="text/javascript">
+    MoveOver({
+        canvas: document.querySelector('canvas'),
+        imgSrc: './1.jpg',
+        imgBSrc: './1.b.jpg',
+        fps: 30,
+    });
+</script>
+```
+
+#### AMD Module
+```html
+<script type="text/javascript" src="require.js"></script>
+<script type="text/javascript" src="move-over.js"></script>
+<script type="text/javascript">
+    require(['MoveOver'], function (MoveOver) {
+        MoveOver({
+            canvas: document.querySelector('canvas'),
+            imgSrc: './1.jpg',
+            imgBSrc: './1.b.jpg',
+            fps: 30,
+        });
+    });
+</script>
+
+```
+
+---
+
+## But Why?
 
 ![But Why?](but-why.gif)
 
