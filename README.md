@@ -17,10 +17,9 @@ With extra goodness:
 <script type="text/javascript" src="move-over.js"></script>
 <script type="text/javascript">
     MoveOver({
+        canvas: document.querySelector('canvas'),  // optional
         imgSrc: './1.jpg',
         imgBSrc: './1.b.jpg',
-
-        canvas: document.querySelector('canvas'),  // optional
         fps: 30,  // optional
     });
 </script>
@@ -33,10 +32,10 @@ With extra goodness:
 <script type="text/javascript">
     require(['MoveOver'], function (MoveOver) {
         MoveOver({
-            canvas: document.querySelector('canvas'),
+            canvas: document.querySelector('canvas'),  // optional
             imgSrc: './1.jpg',
             imgBSrc: './1.b.jpg',
-            fps: 30,
+            fps: 30,  // optional
         });
     });
 </script>
