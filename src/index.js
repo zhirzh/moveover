@@ -76,7 +76,7 @@ function renderImages() {
 
 function render(HRTimestamp) {
   rafID = requestAnimationFrame(render);
-  if (HRTimestamp - last < 1000 / fps) {
+  if (fps && HRTimestamp - last < 1000 / fps) {
     return;
   }
   last = HRTimestamp;
@@ -180,7 +180,7 @@ function init({
   canvas: _canvas = createCanvas(),
   imgSrc,
   imgBSrc,
-  fps: _fps = 60,
+  fps: _fps = null,
 }) {
   canvas = _canvas;
   ctx = canvas.getContext('2d');

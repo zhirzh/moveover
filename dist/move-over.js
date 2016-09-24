@@ -9162,7 +9162,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	
 	function render(HRTimestamp) {
 	  rafID = requestAnimationFrame(render);
-	  if (HRTimestamp - last < 1000 / fps) {
+	  if (fps && HRTimestamp - last < 1000 / fps) {
 	    return;
 	  }
 	  last = HRTimestamp;
@@ -9264,7 +9264,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  var imgBSrc = _ref.imgBSrc;
 	  var _ref$fps = _ref.fps;
 	
-	  var _fps = _ref$fps === undefined ? 60 : _ref$fps;
+	  var _fps = _ref$fps === undefined ? null : _ref$fps;
 	
 	  canvas = _canvas;
 	  ctx = canvas.getContext('2d');
