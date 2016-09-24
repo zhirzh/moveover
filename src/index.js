@@ -166,7 +166,22 @@ function bindEventListeners() {
 }
 
 
-function init({ canvas: _canvas, imgSrc, imgBSrc, fps: _fps = 60 }) {
+function createCanvas() {
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+  canvas.style.position = 'fixed';
+  canvas.style.zIndex = -1000;
+
+  return canvas;
+}
+
+
+function init({
+  canvas: _canvas = createCanvas(),
+  imgSrc,
+  imgBSrc,
+  fps: _fps = 60,
+}) {
   canvas = _canvas;
   ctx = canvas.getContext('2d');
   fps = _fps;
