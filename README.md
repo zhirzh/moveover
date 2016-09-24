@@ -17,10 +17,11 @@ With extra goodness:
 <script type="text/javascript" src="move-over.js"></script>
 <script type="text/javascript">
     MoveOver({
-        canvas: document.querySelector('canvas'),
         imgSrc: './1.jpg',
         imgBSrc: './1.b.jpg',
-        fps: 30,
+
+        canvas: document.querySelector('canvas'),  // optional
+        fps: 30,  // optional
     });
 </script>
 ```
